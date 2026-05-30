@@ -1,0 +1,26 @@
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin-top: 10px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  color: #888;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.placeholder:hover {
+  border-color: #007aff;
+  color: #007aff;
+}
+
+.plusIcon {
+  font-size: 20px;
+  margin-right: 5px;
+}
+
+.text {
+  font-size: 14px;
+}

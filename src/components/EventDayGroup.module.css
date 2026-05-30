@@ -1,0 +1,10 @@
+/* src/components/EventDayGroup.module.css */
+.dayGroup {
+  margin-bottom: 15px;
+}
+
+.dayGroupTitle {
+  font-size: 18px;
+  color: #555;
+  margin-bottom: 10px;
+}

@@ -1,0 +1,27 @@
+.mainContentDisplay {
+  padding: 20px;
+  background-color: #ffffff;
+  flex-grow: 1;
+}
+
+.section {
+  margin-bottom: 30px;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.dayGroup {
+  margin-bottom: 15px;
+}
+
+.dayGroupTitle {
+  font-size: 18px;
+  color: #555;
+  margin-bottom: 10px;
+}
