@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import styles from './MainContentDisplay.module.css';
 import { Event, FilterType } from '../types';
 import EventCard from './EventCard';
@@ -20,12 +20,77 @@ interface MainContentDisplayProps {
   activeFilter: FilterType;
   onToggleComplete: (id: string) => void;
   onAddTask: (date?: string) => void; // 用于触发添加任务的函数
+  onActiveFilterChange: (filter: FilterType) => void; // 用于通知父组件当前活跃的过滤器
 }
 
-const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeFilter, onToggleComplete, onAddTask }) => {
+const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeFilter, onToggleComplete, onAddTask, onActiveFilterChange }) => {
   const today = getTodayDate();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth(); // 0-11
+
+  const mainContentScrollRef = useRef<HTMLDivElement>(null);
+
+  // Refs for each logical section that needs to be tracked for sidebar sync
+  const pastUncompletedRef = useRef<HTMLDivElement>(null);
+  const todaySectionRef = useRef<HTMLDivElement>(null);
+  const next7DaysSectionRef = useRef<HTMLDivElement>(null); // For the entire 'current week' block
+  const thisMonthOtherSectionRef = useRef<HTMLDivElement>(null);
+  const futureMonthsSectionRef = useRef<HTMLDivElement>(null); // For the first future month section
+  const noDueDateSectionRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = useCallback(() => {
+    if (!mainContentScrollRef.current) return;
+
+    const scrollContainer = mainContentScrollRef.current;
+    const scrollContainerTop = scrollContainer.getBoundingClientRect().top;
+    let newActiveFilter: FilterType = 'all'; // Default to 'all'
+
+    // Define sections and their corresponding filter types, ordered by appearance in the UI
+    const sections = [
+      { ref: todaySectionRef, filter: 'today' as FilterType },
+      { ref: next7DaysSectionRef, filter: 'scheduled' as FilterType },
+      { ref: thisMonthOtherSectionRef, filter: 'scheduled' as FilterType },
+      { ref: futureMonthsSectionRef, filter: 'scheduled' as FilterType },
+      { ref: pastUncompletedSectionRef, filter: 'all' as FilterType }, // Past uncompleted usually appears first or at the top
+      { ref: noDueDateSectionRef, filter: 'all' as FilterType },
+    ];
+
+    // Find the section whose top is closest to the top of the scroll container
+    // and is currently visible or just slightly above the fold.
+    let minDistanceFromTop = Infinity;
+
+    for (const section of sections) {
+      if (section.ref.current) {
+        const sectionRect = section.ref.current.getBoundingClientRect();
+        // Check if the section is at least partially visible
+        if (sectionRect.bottom > scrollContainerTop && sectionRect.top < scrollContainerTop + scrollContainer.clientHeight) {
+          // Prioritize sections whose top is closer to the scroll container's top
+          const distanceFromScrollTop = sectionRect.top - scrollContainerTop;
+          // If a section starts near or above the scroll container's top, consider it
+          if (distanceFromScrollTop >= -sectionRect.height / 2 && distanceFromScrollTop < minDistanceFromTop) {
+            minDistanceFromTop = distanceFromScrollTop;
+            newActiveFilter = section.filter;
+          }
+        }
+      }
+    }
+
+    if (newActiveFilter !== activeFilter) {
+      onActiveFilterChange(newActiveFilter);
+    }
+  }, [activeFilter, onActiveFilterChange]);
+
+  useEffect(() => {
+    const scrollElement = mainContentScrollRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', handleScroll);
+      // Initial check on mount
+      handleScroll();
+      return () => {
+        scrollElement.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [handleScroll]);
 
   // 辅助函数：根据日期过滤事件
   const filterEventsByDate = (targetDate: string, eventList: Event[] = events) => {
@@ -59,7 +124,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeF
     const pastUncompletedEvents = events.filter(event => isPastDate(event.dueDate || '') && !event.completed);
     if (pastUncompletedEvents.length > 0) {
       displaySections.push(
-        <div key="past-uncompleted" className={styles.section}>
+        <div key="past-uncompleted" ref={pastUncompletedRef} className={styles.section}>
           <h2 className={styles.sectionTitle}>过去未完成</h2>
           {pastUncompletedEvents.map(event => (
             <EventCard key={event.id} event={event} onToggleComplete={onToggleComplete} />
@@ -71,7 +136,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeF
     // 2. 今天 (在 'scheduled' 和 'all' 视图下，也需要单独列出)
     const todayEvents = filterEventsByDate(today);
     displaySections.push(
-      <div key="today-section" className={styles.section}>
+      <div key="today-section" ref={todaySectionRef} className={styles.section}>
         <EventDayGroup
           dateTitle="今天"
           events={todayEvents}
@@ -84,8 +149,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeF
     );
 
     // 3. 当前周（从明天开始的6天）
-    const next6Days = getFutureDates(7).slice(1); // 从明天开始
-    next6Days.forEach(date => {
+    getFutureDates(7).slice(1).forEach((date, index) => { // 从明天开始
       const dailyEvents = filterEventsByDate(date);
       const dateObj = new Date(date);
       const month = dateObj.getMonth() + 1;
@@ -94,7 +158,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeF
       const formattedDateTitle = `${month}月${day}日 ${dayOfWeek}`;
 
       displaySections.push(
-        <div key={date} className={styles.section}>
+        <div key={date} ref={index === 0 ? next7DaysSectionRef : null} className={styles.section}>
           <EventDayGroup
             dateTitle={formattedDateTitle}
             events={dailyEvents}
@@ -130,7 +194,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeF
 
     if (Object.keys(currentMonthOtherGrouped).length > 0) {
       displaySections.push(
-        <div key="current-month-other" className={styles.section}>
+        <div key="current-month-other" ref={thisMonthOtherSectionRef} className={styles.section}>
           <h2 className={styles.sectionTitle}>本月其他时间</h2>
           {Object.entries(currentMonthOtherGrouped).map(([date, dailyEvents]) => {
             const dateObj = new Date(date);
@@ -173,7 +237,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeF
 
       if (Object.keys(futureMonthGrouped).length > 0) {
         displaySections.push(
-          <div key={futureYearMonth} className={styles.section}>
+          <div key={futureYearMonth} ref={i === 1 ? futureMonthsSectionRef : null} className={styles.section}>
             <h2 className={styles.sectionTitle}>{futureMonthDate.getFullYear()}年{futureMonthDate.getMonth() + 1}月</h2>
             {Object.entries(futureMonthGrouped).map(([date, dailyEvents]) => {
               const dateObj = new Date(date);
@@ -211,7 +275,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ events, activeF
     const noDueDateEvents = events.filter(event => !event.dueDate);
     if (noDueDateEvents.length > 0) {
       displaySections.push(
-        <div key="no-due-date" className={styles.section}>
+        <div key="no-due-date" ref={noDueDateSectionRef} className={styles.section}>
           <h2 className={styles.sectionTitle}>无截止日期</h2>
           {noDueDateEvents.map(event => (
             <EventCard key={event.id} event={event} onToggleComplete={onToggleComplete} />

@@ -6,8 +6,12 @@
   - 为任务添加模态框创建了样式文件 [AddTaskModal.module.css](file:///c:/Users/31063/Desktop/AI-Voice-Calendar/AI-Voice-Calendar/src/components/AddTaskModal.module.css)。
   - 在 [App.tsx](file:///c:/Users/31063/Desktop/AI-Voice-Calendar/AI-Voice-Calendar/src/App.tsx) 中启用了 `AddTaskModal` 组件的渲染，实现了任务添加的交互流程。
   - 移除了 [App.tsx](file:///c:/Users/31063/Desktop/AI-Voice-Calendar/AI-Voice-Calendar/src/App.tsx) 中 `handleAddTask` 函数内的 `alert` 调试信息，现在模态框将正常显示。
-- **缺陷修复：事件勾选异常** (初步修复，需要验证)
-  - 在 `useEvents.ts` 中使用 `crypto.randomUUID()` 确保事件 ID 的全局唯一性，解决勾选单个事件时所有事件都被标记为已勾选的问题。
+- **缺陷修复：事件勾选异常**
+  - 在 `useEvents.ts` 中使用 `crypto.randomUUID()` 确保事件 ID 的全局唯一性，解决了勾选单个事件时所有事件都被标记为已勾选的问题。
+- **缺陷修复：左侧列表切换功能修复**
+  - 在 `MainContentDisplay.tsx` 中新增 `onActiveFilterChange` prop，用于通知父组件当前活跃的过滤器。
+  - 在 `MainContentDisplay.tsx` 中实现滚动事件监听和逻辑，以根据滚动位置判断当前最可见的日期分组。
+  - 在 `App.tsx` 中将 `setActiveFilter` 作为 `onActiveFilterChange` prop 传递给 `MainContentDisplay`，实现左侧导航栏背景与右侧内容滚动的同步。
 - **功能增强：计划模块基础结构**
   - 创建了 [MainContentDisplay.tsx](file:///c:/Users/31063/Desktop/AI-Voice-Calendar/AI-Voice-Calendar/src/components/MainContentDisplay.tsx) 组件，负责主内容区域的复杂日期分组和渲染。
   - 创建了 [MainContentDisplay.module.css](file:///c:/Users/31063/Desktop/AI-Voice-Calendar/AI-Voice-Calendar/src/components/MainContentDisplay.module.css) 为其提供样式。

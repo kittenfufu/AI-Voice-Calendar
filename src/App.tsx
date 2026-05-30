@@ -91,6 +91,7 @@ function App() {
           activeFilter={activeFilter}
           onToggleComplete={toggleEventComplete}
           onAddTask={handleAddTask}
+          onActiveFilterChange={setActiveFilter}
         />
       </main>
 
